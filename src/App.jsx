@@ -1,10 +1,10 @@
 import React from 'react';
-import PhaseTenScorekeeper from './scorekeeper';
+import PhasetenScorekeeper from './scorekeeper';
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-100">
-      <PhaseTenScorekeeper />
+      <PhasetenScorekeeper />
     </div>
   );
 }
