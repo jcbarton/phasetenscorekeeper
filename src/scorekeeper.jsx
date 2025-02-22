@@ -606,4 +606,4 @@ const PhasetenScorekeeper = () => {
   );
 };
 
-export default PhasetenScorekeeper;
+export default PhaseTenScorekeeper;
