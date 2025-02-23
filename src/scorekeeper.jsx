@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, PlusCircle, Trash2, Trophy, TrendingUp, Award } from 'lucide-react';
+import { AlertCircle, PlusCircle, Trash2, Trophy, TrendingUp, Award, RefreshCw } from 'lucide-react';
+
+const STORAGE_KEY = 'phasetenGameState';
 
 const PhasetenScorekeeper = () => {
   // State management
@@ -16,6 +18,87 @@ const PhasetenScorekeeper = () => {
   const [playerStats, setPlayerStats] = useState({});
   const [achievements, setAchievements] = useState({});
   const [isScoringGuideOpen, setIsScoringGuideOpen] = useState(false);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    // Always reset temporary UI states on mount
+    setCurrentRoundScores({});
+    setCurrentRoundPhaseCompleted({});
+    setNewPlayerName('');
+    setIsAddPlayerModalVisible(false);
+    setIsEnterScoresModalVisible(false);
+    setIsGameOverModalVisible(false);
+    setIsScoringGuideOpen(false);
+
+    try {
+      const savedState = localStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        
+        // Ensure all required properties exist with defaults
+        const state = {
+          players: [],
+          rounds: [],
+          currentRound: 1,
+          currentDealer: null,
+          playerStats: {},
+          achievements: {},
+          ...parsedState // This will override the defaults with saved values
+        };
+        
+        setPlayers(state.players);
+        setRounds(state.rounds);
+        setCurrentRound(state.currentRound);
+        setCurrentDealer(state.currentDealer);
+        setPlayerStats(state.playerStats);
+        setAchievements(state.achievements);
+      } else {
+        // Initialize with empty states if no saved state
+        setPlayers([]);
+        setRounds([]);
+        setCurrentRound(1);
+        setCurrentDealer(null);
+        setPlayerStats({});
+        setAchievements({});
+      }
+    } catch (error) {
+      console.error('Error loading game state:', error);
+      // On error, initialize with empty states
+      setPlayers([]);
+      setRounds([]);
+      setCurrentRound(1);
+      setCurrentDealer(null);
+      setPlayerStats({});
+      setAchievements({});
+    }
+  }, []); // Only run on mount
+
+  // Save state to localStorage whenever important state changes
+  useEffect(() => {
+    // Prevent saving empty or initial state
+    if (players.length === 0 && rounds.length === 0) {
+      return;
+    }
+
+    const stateToSave = {
+      players,
+      rounds,
+      currentRound,
+      currentDealer,
+      playerStats,
+      achievements
+    };
+    console.log("saving state")
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+  }, [players, rounds, currentRound, currentDealer, playerStats, achievements]);
+
+  // Clear all stored state
+  const clearStoredState = () => {
+    if (window.confirm('Are you sure you want to clear all saved game data? This cannot be undone.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      resetGame();
+    }
+  };
 
   const ACHIEVEMENT_DESCRIPTIONS = {
     'Low Baller 📉': 'Completed a phase with 5 points or less',
@@ -84,7 +167,10 @@ const PhasetenScorekeeper = () => {
     setRounds([]);
     setCurrentRound(1);
     setCurrentDealer(null);
+    setPlayerStats({});
+    setAchievements({});
     setIsGameOverModalVisible(false);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   // Start entering scores for the current round
@@ -360,29 +446,34 @@ const PhasetenScorekeeper = () => {
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
-      <h1 className="text-3xl font-bold text-center mb-6">Phase 10</h1>
-      
       {/* Game Info */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6 flex justify-between items-center">
+      <div className="bg-phase-white shadow-lg rounded-lg p-4 mb-6 flex justify-between items-center border-l-4 border-phase-red">
         <div>
-          <p className="font-semibold">Round: {currentRound}</p>
-          <p className="font-semibold">Dealer: <span className="text-purple-600">{currentDealer?.name || 'Not Set'}</span></p>
+          <p className="font-semibold text-phase-gray">Round: {currentRound}</p>
+          <p className="font-semibold text-phase-gray">Dealer: <span className="text-phase-blue">{currentDealer?.name || 'Not Set'}</span></p>
         </div>
+        <button
+          onClick={clearStoredState}
+          className="text-phase-red hover:opacity-80 flex items-center"
+          title="Clear all saved game data"
+        >
+          <RefreshCw className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Players Section */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Current Scores</h2>
+          <h2 className="text-xl font-bold text-phase-gray">Current Scores</h2>
           <button 
             onClick={() => setIsAddPlayerModalVisible(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+            className="bg-phase-blue text-phase-white px-4 py-2 rounded hover:opacity-90 flex items-center"
           >
             <PlusCircle className="mr-2" /> Add Player
           </button>
         </div>
         {players.length === 0 ? (
-          <p className="text-gray-500 text-center">No players added yet</p>
+          <p className="text-phase-gray text-center">No players added yet</p>
         ) : (
           <div className="space-y-2">
             {[...players]
@@ -390,16 +481,16 @@ const PhasetenScorekeeper = () => {
               .map(player => (
               <div 
                 key={player.id} 
-                className="bg-white shadow rounded-lg p-4 flex justify-between items-center"
+                className="bg-phase-white shadow-md rounded-lg p-4 flex justify-between items-center border-l-4 border-phase-yellow"
               >
                 <div>
-                  <span className="font-semibold">{player.name}</span>
-                  <span className="ml-4 text-blue-600">Score: {player.totalScore}</span>
-                  <span className="ml-4 text-green-600">Phase: {player.currentPhase}</span>
+                  <span className="font-semibold text-phase-gray">{player.name}</span>
+                  <span className="ml-4 text-phase-blue">Score: {player.totalScore}</span>
+                  <span className="ml-4 text-phase-red">Phase: {player.currentPhase}</span>
                 </div>
                 <button 
                   onClick={() => removePlayer(player.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-phase-red hover:opacity-80"
                 >
                   <Trash2 />
                 </button>
@@ -413,28 +504,28 @@ const PhasetenScorekeeper = () => {
       {players.length > 1 && (
         <button 
           onClick={beginRoundScoring}
-          className="w-full bg-green-500 text-white py-3 rounded hover:bg-green-600 flex items-center justify-center"
+          className="w-full bg-phase-red text-phase-white py-3 rounded hover:opacity-90 flex items-center justify-center"
         >
           Enter scores for Round {currentRound}
         </button>
       )}
 
-      {/* Add Statistics Section before Round History */}
+      {/* Statistics Section */}
       {renderStatistics()}
 
       {/* Round History */}
       <div className="mt-6">
-        <h2 className="text-xl font-bold mb-4">Round History</h2>
+        <h2 className="text-xl font-bold mb-4 text-phase-gray">Round History</h2>
         {rounds.length === 0 ? (
-          <p className="text-gray-500 text-center">No rounds played yet</p>
+          <p className="text-phase-gray text-center">No rounds played yet</p>
         ) : (
           <div className="space-y-2">
-            {rounds.slice().reverse().map((round, index) => (
+            {rounds.slice().reverse().map((round) => (
               <div 
                 key={round.roundNumber} 
-                className="bg-white shadow rounded-lg p-4"
+                className="bg-phase-white shadow-md rounded-lg p-4 border-l-4 border-phase-blue"
               >
-                <div className="font-semibold mb-2">
+                <div className="font-semibold mb-2 text-phase-gray">
                   Round {round.roundNumber} | Dealer: {round.dealer}
                 </div>
                 <div className="space-y-1">
@@ -444,13 +535,13 @@ const PhasetenScorekeeper = () => {
                       className="flex justify-between items-center"
                     >
                       <div>
-                        <span>{score.name}</span>
-                        <span className="ml-2 text-green-600">
+                        <span className="text-phase-gray">{score.name}</span>
+                        <span className="ml-2 text-phase-red">
                           Phase {score.previousPhase}
                           {score.phaseCompleted && ' ✓'}
                         </span>
                       </div>
-                      <span className="text-blue-600">{score.roundScore}</span>
+                      <span className="text-phase-blue">{score.roundScore}</span>
                     </div>
                   ))}
                 </div>
@@ -460,23 +551,22 @@ const PhasetenScorekeeper = () => {
         )}
       </div>
 
-      {/* Enter Scores Modal */}
+      {/* Modals */}
       {isEnterScoresModalVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Enter scores for Round {currentRound}</h2>
+          <div className="bg-phase-white p-6 rounded-lg shadow-xl w-96 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 text-phase-gray">Enter scores for Round {currentRound}</h2>
             
-            {/* Scoring Reference - Collapsible */}
             <div className="mb-4 text-sm border rounded">
               <button
                 onClick={() => setIsScoringGuideOpen(!isScoringGuideOpen)}
-                className="w-full p-2 text-left font-semibold bg-gray-50 flex justify-between items-center"
+                className="w-full p-2 text-left font-semibold bg-gray-50 flex justify-between items-center text-phase-gray"
               >
                 Card Points Reference
                 <span>{isScoringGuideOpen ? '−' : '+'}</span>
               </button>
               {isScoringGuideOpen && (
-                <div className="p-2 grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600">
+                <div className="p-2 grid grid-cols-2 gap-x-4 gap-y-1 text-phase-gray">
                   {Object.entries(CARD_POINTS).map(([card, points]) => (
                     <div key={card} className="flex justify-between">
                       <span>{card}:</span>
@@ -486,20 +576,16 @@ const PhasetenScorekeeper = () => {
                 </div>
               )}
             </div>
-
             {players.map(player => (
-              <div 
-                key={player.id} 
-                className="mb-4"
-              >
+              <div key={player.id} className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold">{player.name} (Phase {player.currentPhase})</span>
+                  <span className="font-semibold text-phase-gray">{player.name} (Phase {player.currentPhase})</span>
                   <input
                     type="number"
                     placeholder="Score"
                     value={currentRoundScores[player.id]}
                     onChange={(e) => updatePlayerScore(player.id, e.target.value)}
-                    className="w-24 p-2 border rounded text-right"
+                    className="w-24 p-2 border rounded text-right text-phase-gray"
                   />
                 </div>
                 <div className="flex items-center">
@@ -509,20 +595,20 @@ const PhasetenScorekeeper = () => {
                     onChange={() => togglePhaseCompletion(player.id)}
                     className="mr-2"
                   />
-                  <label>Completed Phase {player.currentPhase}</label>
+                  <label className="text-phase-gray">Completed Phase {player.currentPhase}</label>
                 </div>
               </div>
             ))}
             <div className="flex justify-between mt-6">
               <button 
                 onClick={finishRound}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                className="bg-phase-red text-phase-white px-4 py-2 rounded hover:opacity-90"
               >
                 Finish Round
               </button>
               <button 
                 onClick={() => setIsEnterScoresModalVisible(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                className="bg-phase-gray text-phase-white px-4 py-2 rounded hover:opacity-90"
               >
                 Cancel
               </button>
@@ -534,29 +620,29 @@ const PhasetenScorekeeper = () => {
       {/* Game Over Modal */}
       {isGameOverModalVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-8 rounded-lg shadow-xl w-96 text-center">
-            <Trophy className="mx-auto text-yellow-500 mb-4" size={64} />
-            <h2 className="text-2xl font-bold mb-4">Game Over!</h2>
+          <div className="bg-phase-white p-8 rounded-lg shadow-xl w-96 text-center">
+            <Trophy className="mx-auto text-phase-yellow mb-4" size={64} />
+            <h2 className="text-2xl font-bold mb-4 text-phase-red">Game Over!</h2>
             <div className="mb-6">
-              <p className="text-xl font-semibold">Winner: {currentDealer.name}</p>
-              <p className="text-gray-600">First to complete Phase 10!</p>
-              <p className="text-gray-600">Final Score: {currentDealer.totalScore}</p>
+              <p className="text-xl font-semibold text-phase-gray">Winner: {currentDealer.name}</p>
+              <p className="text-phase-gray">First to complete Phase 10!</p>
+              <p className="text-phase-blue">Final Score: {currentDealer.totalScore}</p>
             </div>
-            <h3 className="text-xl font-bold mb-4">Final Standings</h3>
+            <h3 className="text-xl font-bold mb-4 text-phase-gray">Final Standings</h3>
             <div className="space-y-2">
               {players
                 .sort((a, b) => b.currentPhase - a.currentPhase || a.totalScore - b.totalScore)
-                .map((player, index) => (
+                .map((player) => (
                   <div 
                     key={player.id} 
                     className={`flex justify-between p-2 rounded ${
                       player.id === currentDealer.id
-                        ? 'bg-green-100 font-bold' 
+                        ? 'bg-phase-yellow bg-opacity-20 font-bold' 
                         : 'bg-gray-100'
                     }`}
                   >
-                    <span>{player.name}</span>
-                    <span>Phase {player.currentPhase - 1} | {player.totalScore}</span>
+                    <span className="text-phase-gray">{player.name}</span>
+                    <span className="text-phase-blue">Phase {player.currentPhase - 1} | {player.totalScore}</span>
                   </div>
                 ))
               }
@@ -564,7 +650,7 @@ const PhasetenScorekeeper = () => {
             <div className="flex justify-center mt-6">
               <button 
                 onClick={resetGame}
-                className="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 flex items-center"
+                className="bg-phase-red text-phase-white px-6 py-3 rounded hover:opacity-90 flex items-center"
               >
                 New Game
               </button>
@@ -576,25 +662,25 @@ const PhasetenScorekeeper = () => {
       {/* Add Player Modal */}
       {isAddPlayerModalVisible && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h2 className="text-xl font-bold mb-4">Add New Player</h2>
+          <div className="bg-phase-white p-6 rounded-lg shadow-xl w-96">
+            <h2 className="text-xl font-bold mb-4 text-phase-gray">Add New Player</h2>
             <input
               type="text"
               placeholder="Player Name"
               value={newPlayerName}
               onChange={(e) => setNewPlayerName(e.target.value)}
-              className="w-full p-2 border rounded mb-4"
+              className="w-full p-2 border rounded mb-4 text-phase-gray"
             />
             <div className="flex justify-between">
               <button 
                 onClick={addPlayer}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                className="bg-phase-red text-phase-white px-4 py-2 rounded hover:opacity-90"
               >
                 Add
               </button>
               <button 
                 onClick={() => setIsAddPlayerModalVisible(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                className="bg-phase-gray text-phase-white px-4 py-2 rounded hover:opacity-90"
               >
                 Cancel
               </button>

@@ -72,7 +72,11 @@ Players can earn achievements during gameplay:
 - React
 - Tailwind CSS
 - Lucide Icons
+- Built with assistance from GitHub Copilot
 
 ## License
+MIT License
 
-This project is private and not licensed for public distribution.
+Copyright (c) 2024
+
+This project was created with assistance from AI (GitHub Copilot). The code and content are released under the MIT License, which allows for free use, modification, and distribution, provided that the original copyright and license notices are included.
